@@ -126,14 +126,27 @@ def get_three_verts_from_selection(obj):
     return [v.co[:] for v in bm.verts if v.select]
 
 
+class CircleGenerator(bpy.types.Operator):
+
+    bl_idname = 'mesh.circle_ops'
+    bl_label = 'finalized circle'
+    bl_options = {'UNDO'}
+
+    def execute(self, context):
+        # obj = bpy.context.object
+        # pts = get_three_verts_from_selection(obj)
+        # generate_3PT_mode_1(pts, obj, self.nv)
+        print('fuck yes')
+        return {'FINISHED'}
+
+
 class CircleCenter(bpy.types.Operator):
 
     bl_idname = 'mesh.circlecenter'
     bl_label = 'circle center from selected'
-    bl_options = {'UNDO'}
-    # bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'REGISTER', 'UNDO'}
 
-    nv = bpy.props.IntProperty(default=12, options={'HIDDEN'})
+    nv = bpy.props.IntProperty(default=12)
 
     @classmethod
     def poll(self, context):
@@ -146,36 +159,8 @@ class CircleCenter(bpy.types.Operator):
         generate_3PT_mode_1(pts, obj, self.nv)
         return {'FINISHED'}
 
-
-class CirclePanel(bpy.types.Panel):
-    bl_idname = "mesh.tc_panel"
-    bl_label = "tinyCAD circle"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-
-    # def GCircleUpdate(self, context):
-    #     print('yes!')
-
-    # scn = bpy.types.Scene
-    # scn.tc_numverts = bpy.props.IntProperty(
-    #     default=12,
-    #     update=GCircleUpdate)
-
-    @classmethod
-    def poll(self, context):
-        obj = context.active_object
-        if not obj:
-            return
-
-        if (obj.type == 'MESH' and obj.mode == 'EDIT'):
-            return obj.data.total_vert_sel >= 3
-
     def draw(self, context):
-        scn = context.scene
-        layout = self.layout
-
-        col = layout.column()
-        col.prop(scn, "tc_numverts")
-
-        s1 = col.operator("mesh.circlecenter", text='GreasePencil points')
-        s1.nv = scn.tc_numverts
+        lyt = self.layout
+        col = lyt.column()
+        col.prop(self, 'nv', text="number of verts")
+        col.operator('mesh.circle_ops', text="finalize circle")
