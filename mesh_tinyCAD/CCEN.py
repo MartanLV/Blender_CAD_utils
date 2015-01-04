@@ -88,7 +88,7 @@ def generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv):
         s.points[idx].co = p
 
 
-def generate_mesh3d_stroke(obj, p1, v1, axis, mw, origin, nv):
+def generate_mesh3d_stroke(bm, p1, v1, axis, mw, origin, nv):
 
     '''
     p1:     center of circle (local coordinates)
@@ -97,8 +97,6 @@ def generate_mesh3d_stroke(obj, p1, v1, axis, mw, origin, nv):
     mw:     obj.matrix_world
     origin: obj.location
     '''
-    me = obj.data
-    bm = bmesh.from_edit_mesh(me)
 
     num_verts = nv
     gamma = 2 * math.pi / num_verts
@@ -115,13 +113,10 @@ def generate_mesh3d_stroke(obj, p1, v1, axis, mw, origin, nv):
     for i in range(-nv, -1):
         bm.edges.new([bm.verts[i], bm.verts[i+1]])
     bm.edges.new([bm.verts[-nv], bm.verts[-1]])
-
-    bmesh.update_edit_mesh(me)
-    bm.free()
     print('done')
 
 
-def generate_3PT_mode_1(pts, obj, nv, mode):
+def generate_3PT_mode_1(bm, pts, obj, nv, mode):
     origin = obj.location
     mw = obj.matrix_world
     V = Vector
@@ -149,8 +144,9 @@ def generate_3PT_mode_1(pts, obj, nv, mode):
         if mode == 'FAKE':
             layer = get_layer()
             generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv)
+
         else:
-            generate_mesh3d_stroke(obj, p1, v1, axis, mw, origin, nv)
+            generate_mesh3d_stroke(bm, p1, v1, axis, mw, origin, nv)
     else:
         print('not on a circle')
 
@@ -159,10 +155,11 @@ def get_three_verts_from_selection(obj):
     me = obj.data
     bm = bmesh.from_edit_mesh(me)
 
-    if hasattr(bm.verts, "ensure_lookup_table"):
-        bm.verts.ensure_lookup_table()
+    # if hasattr(bm.verts, "ensure_lookup_table"):
+    #     bm.verts.ensure_lookup_table()
 
-    return [v.co[:] for v in bm.verts if v.select]
+    selected_verts = [v.co[:] for v in bm.verts if v.select]
+    return selected_verts, bm
 
 
 class CircleGenerator(bpy.types.Operator):
@@ -174,10 +171,15 @@ class CircleGenerator(bpy.types.Operator):
     mode = bpy.props.StringProperty(default='FAKE')
 
     def execute(self, context):
-        obj = bpy.context.object
+        obj = bpy.context.active_object
         scn = bpy.context.scene
-        pts = get_three_verts_from_selection(obj)
-        generate_3PT_mode_1(pts, obj, scn.tc_numverts, self.mode)
+        pts, bm = get_three_verts_from_selection(obj)
+
+        # add 3d points to mesh
+        generate_3PT_mode_1(bm, pts, obj, scn.tc_numverts, self.mode)
+        me = obj.data
+        bmesh.update_edit_mesh(me)
+        bm.free()
         return {'FINISHED'}
 
 
@@ -196,9 +198,10 @@ class CircleCenter(bpy.types.Operator):
         return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
 
     def execute(self, context):
-        obj = bpy.context.object
-        pts = get_three_verts_from_selection(obj)
-        generate_3PT_mode_1(pts, obj, self.nv, self.mode)
+        obj = bpy.context.active_object
+        pts, bm = get_three_verts_from_selection(obj)
+        generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
+        bm.free()
         return {'FINISHED'}
 
     def draw(self, context):
