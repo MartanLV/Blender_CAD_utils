@@ -130,9 +130,10 @@ class CircleCenter(bpy.types.Operator):
 
     bl_idname = 'mesh.circlecenter'
     bl_label = 'circle center from selected'
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
+    # bl_options = {'REGISTER', 'UNDO'}
 
-    nv = bpy.props.IntProperty(default=12)
+    nv = bpy.props.IntProperty(default=12, options={'HIDDEN'})
 
     @classmethod
     def poll(self, context):

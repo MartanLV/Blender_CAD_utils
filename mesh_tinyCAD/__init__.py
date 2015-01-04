@@ -71,7 +71,9 @@ def register():
     for i, _ in vtx_classes:
         bpy.utils.register_class(i)
 
-    bpy.types.Scene.tc_numverts = bpy.props.IntProperty(default=12)
+    bpy.types.Scene.tc_numverts = bpy.props.IntProperty(
+        default=12,
+        options={'HIDDEN'})
     bpy.utils.register_class(VIEW3D_MT_edit_mesh_tinycad)
     bpy.types.VIEW3D_MT_edit_mesh_specials.prepend(menu_func)
     bpy.utils.register_class(CirclePanel)
