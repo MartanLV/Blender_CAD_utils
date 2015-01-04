@@ -26,10 +26,14 @@ import mathutils
 from mathutils import geometry
 from mathutils import Vector
 
+# If you are new to Blender Python programming,
+# I advise you to avoid reading this file, you will learn only
+# bad technique.
+
 
 def get_layer():
     '''
-        this always returns a new empty layer ready for drawing to
+    this always returns a new empty layer ready for drawing to
     '''
 
     # get grease pencil data
@@ -57,11 +61,11 @@ def get_layer():
 def generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv):
 
     '''
-        p1:     center of circle (local coordinates)
-        v1:     first vertex of circle in (local coordinates)
-        axis:   orientation matrix
-        mw:     obj.matrix_world
-        origin: obj.location
+    p1:     center of circle (local coordinates)
+    v1:     first vertex of circle in (local coordinates)
+    axis:   orientation matrix
+    mw:     obj.matrix_world
+    origin: obj.location
     '''
 
     layer.show_points = True
@@ -75,7 +79,7 @@ def generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv):
     for i in range(num_verts+1):
         theta = gamma * i
         mat_rot = mathutils.Matrix.Rotation(theta, 4, axis)
-        local_point = mw * (mat_rot * (v1 - p1))  # + origin
+        local_point = mw * (mat_rot * (v1 - p1))
         world_point = local_point - (origin - (mw*p1))
         chain.append(world_point)
 
@@ -84,7 +88,40 @@ def generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv):
         s.points[idx].co = p
 
 
-def generate_3PT_mode_1(pts, obj, nv):
+def generate_mesh3d_stroke(obj, p1, v1, axis, mw, origin, nv):
+
+    '''
+    p1:     center of circle (local coordinates)
+    v1:     first vertex of circle in (local coordinates)
+    axis:   orientation matrix
+    mw:     obj.matrix_world
+    origin: obj.location
+    '''
+    me = obj.data
+    bm = bmesh.from_edit_mesh(me)
+
+    num_verts = nv
+    gamma = 2 * math.pi / num_verts
+    for i in range(num_verts+1):
+        theta = gamma * i
+        mat_rot = mathutils.Matrix.Rotation(theta, 4, axis)
+        local_point = (mat_rot * (v1 - p1)) + p1
+        bm.verts.new(local_point)
+
+    if hasattr(bm.verts, "ensure_lookup_table"):
+        bm.verts.ensure_lookup_table()
+        # bm.edges.ensure_lookup_table()
+
+    for i in range(-nv, -1):
+        bm.edges.new([bm.verts[i], bm.verts[i+1]])
+    bm.edges.new([bm.verts[-nv], bm.verts[-1]])
+
+    bmesh.update_edit_mesh(me)
+    bm.free()
+    print('done')
+
+
+def generate_3PT_mode_1(pts, obj, nv, mode):
     origin = obj.location
     mw = obj.matrix_world
     V = Vector
@@ -109,8 +146,11 @@ def generate_3PT_mode_1(pts, obj, nv):
         p1, _ = r
         cp = mw * p1
         bpy.context.scene.cursor_location = cp
-        layer = get_layer()
-        generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv)
+        if mode == 'FAKE':
+            layer = get_layer()
+            generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv)
+        else:
+            generate_mesh3d_stroke(obj, p1, v1, axis, mw, origin, nv)
     else:
         print('not on a circle')
 
@@ -121,7 +161,6 @@ def get_three_verts_from_selection(obj):
 
     if hasattr(bm.verts, "ensure_lookup_table"):
         bm.verts.ensure_lookup_table()
-        bm.edges.ensure_lookup_table()
 
     return [v.co[:] for v in bm.verts if v.select]
 
@@ -132,11 +171,13 @@ class CircleGenerator(bpy.types.Operator):
     bl_label = 'finalized circle'
     bl_options = {'UNDO'}
 
+    mode = bpy.props.StringProperty(default='FAKE')
+
     def execute(self, context):
-        # obj = bpy.context.object
-        # pts = get_three_verts_from_selection(obj)
-        # generate_3PT_mode_1(pts, obj, self.nv)
-        print('fuck yes')
+        obj = bpy.context.object
+        scn = bpy.context.scene
+        pts = get_three_verts_from_selection(obj)
+        generate_3PT_mode_1(pts, obj, scn.tc_numverts, self.mode)
         return {'FINISHED'}
 
 
@@ -147,6 +188,7 @@ class CircleCenter(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     nv = bpy.props.IntProperty(default=12)
+    mode = bpy.props.StringProperty(default='FAKE')
 
     @classmethod
     def poll(self, context):
@@ -156,11 +198,11 @@ class CircleCenter(bpy.types.Operator):
     def execute(self, context):
         obj = bpy.context.object
         pts = get_three_verts_from_selection(obj)
-        generate_3PT_mode_1(pts, obj, self.nv)
+        generate_3PT_mode_1(pts, obj, self.nv, self.mode)
         return {'FINISHED'}
 
     def draw(self, context):
-        lyt = self.layout
-        col = lyt.column()
+        layout = self.layout
+        col = layout.column()
         col.prop(self, 'nv', text="number of verts")
-        col.operator('mesh.circle_ops', text="finalize circle")
+        col.operator('mesh.circle_ops', text="finalize circle").mode = 'REAL'
