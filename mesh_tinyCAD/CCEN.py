@@ -147,9 +147,18 @@ class CircleCenter(bpy.types.Operator):
 
 
 class CirclePanel(bpy.types.Panel):
+    bl_idname = "mesh.tc_panel"
     bl_label = "tinyCAD circle"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
+
+    # def GCircleUpdate(self, context):
+    #     print('yes!')
+
+    # scn = bpy.types.Scene
+    # scn.tc_numverts = bpy.props.IntProperty(
+    #     default=12,
+    #     update=GCircleUpdate)
 
     @classmethod
     def poll(self, context):
@@ -161,9 +170,11 @@ class CirclePanel(bpy.types.Panel):
             return obj.data.total_vert_sel >= 3
 
     def draw(self, context):
+        scn = context.scene
         layout = self.layout
-        col = layout.col()
-        col.prop(context.scene, "tc_numverts")
 
-        s1 = col.operator("mesh.circlecenter'", text='GreasePencil points')
-        s1.nv = context.scene.tc_numverts
+        col = layout.column()
+        col.prop(scn, "tc_numverts")
+
+        s1 = col.operator("mesh.circlecenter", text='GreasePencil points')
+        s1.nv = scn.tc_numverts
