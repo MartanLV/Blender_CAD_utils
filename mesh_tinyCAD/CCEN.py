@@ -175,8 +175,8 @@ class CircleGenerator(bpy.types.Operator):
         obj = context.active_object
 
         bm = bmesh.from_edit_mesh(obj.data)
-        if hasattr(bm.verts, "ensure_lookup_table"):
-            bm.verts.ensure_lookup_table()
+        # if hasattr(bm.verts, "ensure_lookup_table"):
+        #     bm.verts.ensure_lookup_table()
         pts = get_selected_verts(bm)
 
         generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
@@ -220,10 +220,6 @@ class CirclePanel(bpy.types.Panel):
         default=12, min=3,
         update=local_update)
 
-    # @classmethod
-    # def poll(self, context):
-    #     obj = context.active_object
-    #     return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
     @classmethod
     def poll(self, context):
         obj = context.active_object
@@ -236,6 +232,8 @@ class CirclePanel(bpy.types.Panel):
 
         col = layout.column()
         col.prop(scn, 'navidad', text="number of verts")
+
+        print(context.active_gpencil_layer)
 
         s1 = col.operator('mesh.circle_ops', text="finalize circle")
         s1.mode = 'REAL'
