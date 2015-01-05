@@ -160,27 +160,35 @@ class CircleGenerator(bpy.types.Operator):
     bl_label = 'finalized circle'
     bl_options = {'REGISTER', 'UNDO'}
 
+    nv = bpy.props.IntProperty(default=0)
     mode = bpy.props.StringProperty(default='REAL')
 
     @classmethod
     def poll(self, context):
         obj = context.active_object
-        return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
+        if ((obj is not None) and (obj.type == 'MESH') and (obj.mode == 'EDIT')):
+            return obj.data.total_verts_sel >= 3
 
     def execute(self, context):
         scn = context.scene
         obj = context.active_object
 
-        try:
-            bm = bmesh.from_edit_mesh(obj.data)
-            if hasattr(bm.verts, "ensure_lookup_table"):
-                bm.verts.ensure_lookup_table()
-            pts = get_selected_verts(bm)
-            generate_3PT_mode_1(bm, pts, obj, scn.tc_numverts, self.mode)
-            bmesh.update_edit_mesh(obj.data)
-            bm.free()
-        except:
-            print('nope')
+        bm = bmesh.from_edit_mesh(obj.data)
+        if hasattr(bm.verts, "ensure_lookup_table"):
+            bm.verts.ensure_lookup_table()
+        pts = get_selected_verts(bm)
+
+        # this discriminates between self invoked or invoked from the panel
+        # yes, it is stupid.
+        if self.nv == 0:
+            nv = scn.tc_numverts
+        else:
+            nv = self.nv
+
+        generate_3PT_mode_1(bm, pts, obj, nv, self.mode)
+        bmesh.update_edit_mesh(obj.data)
+        bm.free()
+        print('bm freed')
 
         return {'FINISHED'}
 
@@ -193,21 +201,34 @@ class CircleCenter(bpy.types.Operator):
     nv = bpy.props.IntProperty(default=12)
     mode = bpy.props.StringProperty(default='FAKE')
 
-    @classmethod
-    def poll(self, context):
-        obj = context.active_object
-        return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
-
     def execute(self, context):
         obj = context.active_object
         bm = bmesh.from_edit_mesh(obj.data)
         pts = get_selected_verts(bm)
         generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
-        bm.free()
+        # bm.free()
         return {'FINISHED'}
 
+
+class CirclePanel(bpy.types.Panel):
+    bl_idname = 'mesh.tc_circle_panel'
+    bl_label = 'Circle Generator'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_context = "object"
+
+    @classmethod
+    def poll(self, context):
+        obj = context.active_object
+        return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
+
     def draw(self, context):
+        scn = context.scene
         layout = self.layout
+
         col = layout.column()
-        col.prop(self, 'nv', text="number of verts")
-        col.operator('mesh.circle_ops', text="finalize circle").mode = 'REAL'
+        col.prop(scn, 'tc_numverts', text="number of verts")
+
+        s1 = col.operator('mesh.circle_ops', text="finalize circle")
+        s1.mode = 'REAL'
+        s1.nv = scn.tc_numverts
