@@ -108,7 +108,7 @@ def generate_mesh3d_stroke(bm, p1, v1, axis, mw, origin, nv):
 
     if hasattr(bm.verts, "ensure_lookup_table"):
         bm.verts.ensure_lookup_table()
-        bm.edges.ensure_lookup_table()
+        # bm.edges.ensure_lookup_table()
 
     for i in range(-nv, -1):
         bm.edges.new([bm.verts[i], bm.verts[i+1]])
@@ -143,36 +143,45 @@ def generate_3PT_mode_1(bm, pts, obj, nv, mode):
         if mode == 'FAKE':
             layer = get_layer()
             generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv)
-            bm.free()
         else:
             generate_mesh3d_stroke(bm, p1, v1, axis, mw, origin, nv)
-            bmesh.update_edit_mesh(obj.data)
     else:
         print('not on a circle')
 
-    # necessary.
 
-
-def get_three_verts_from_selection(obj):
-    bm = bmesh.from_edit_mesh(obj.data)
+def get_selected_verts(bm):
     if hasattr(bm.verts, "ensure_lookup_table"):
         bm.verts.ensure_lookup_table()
-    return [v.co[:] for v in bm.verts if v.select], bm
+    return [v.co[:] for v in bm.verts if v.select]
 
 
 class CircleGenerator(bpy.types.Operator):
     bl_idname = 'mesh.circle_ops'
     bl_label = 'finalized circle'
-    bl_options = {'REGISTER','UNDO'}
+    bl_options = {'REGISTER', 'UNDO'}
 
-    mode = bpy.props.StringProperty(default='FAKE')
+    mode = bpy.props.StringProperty(default='REAL')
+
+    @classmethod
+    def poll(self, context):
+        obj = context.active_object
+        return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
 
     def execute(self, context):
-        obj = context.active_object
         scn = context.scene
-        pts, bm = get_three_verts_from_selection(obj)
-        generate_3PT_mode_1(bm, pts, obj, scn.tc_numverts, self.mode)
-        bm.free()
+        obj = context.active_object
+
+        try:
+            bm = bmesh.from_edit_mesh(obj.data)
+            if hasattr(bm.verts, "ensure_lookup_table"):
+                bm.verts.ensure_lookup_table()
+            pts = get_selected_verts(bm)
+            generate_3PT_mode_1(bm, pts, obj, scn.tc_numverts, self.mode)
+            bmesh.update_edit_mesh(obj.data)
+            bm.free()
+        except:
+            print('nope')
+
         return {'FINISHED'}
 
 
@@ -191,8 +200,10 @@ class CircleCenter(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
-        pts, bm = get_three_verts_from_selection(obj)
+        bm = bmesh.from_edit_mesh(obj.data)
+        pts = get_selected_verts(bm)
         generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
+        bm.free()
         return {'FINISHED'}
 
     def draw(self, context):
