@@ -51,7 +51,7 @@ vtx_classes = (
     [IntersectAllEdges, "tinyCAD XALL"],
     [LineOnBisection, "tinyCAD BIX"],
     [CutOnPerpendicular, "tinyCAD PERP CUT"],
-    [CircleCenter, "tC Circle Center"]
+    # [CircleCenter, "tC Circle Center"]
 )
 
 
@@ -72,8 +72,8 @@ def register():
     for i, _ in vtx_classes:
         bpy.utils.register_class(i)
 
-    bpy.types.Scene.tc_numverts = bpy.props.IntProperty(
-        default=12, min=3)
+    # bpy.types.Scene.tc_numverts = bpy.props.IntProperty(
+    #     default=12, min=3)
     bpy.utils.register_class(VIEW3D_MT_edit_mesh_tinycad)
     bpy.types.VIEW3D_MT_edit_mesh_specials.prepend(menu_func)
     bpy.utils.register_class(CircleGenerator)
@@ -88,4 +88,4 @@ def unregister():
     bpy.utils.unregister_class(CircleGenerator)
     bpy.utils.unregister_class(VIEW3D_MT_edit_mesh_tinycad)
     bpy.types.VIEW3D_MT_edit_mesh_specials.remove(menu_func)
-    del bpy.types.Scene.tc_numverts
+    # del bpy.types.Scene.tc_numverts

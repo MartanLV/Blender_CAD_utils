@@ -158,9 +158,10 @@ def get_selected_verts(bm):
 class CircleGenerator(bpy.types.Operator):
     bl_idname = 'mesh.circle_ops'
     bl_label = 'finalized circle'
-    bl_options = {'REGISTER', 'UNDO'}
+    # bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
-    nv = bpy.props.IntProperty(default=3)
+    nv = bpy.props.IntProperty(default=12, min=3)
     mode = bpy.props.StringProperty(default='REAL')
 
     @classmethod
@@ -189,7 +190,8 @@ class CircleGenerator(bpy.types.Operator):
 class CircleCenter(bpy.types.Operator):
     bl_idname = 'mesh.circlecenter'
     bl_label = 'circle center from selected'
-    bl_options = {'REGISTER', 'UNDO'}
+    # bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
     nv = bpy.props.IntProperty(min=3, default=12)
     mode = bpy.props.StringProperty(default='FAKE')
@@ -211,18 +213,22 @@ class CirclePanel(bpy.types.Panel):
     bl_context = "object"
 
     def local_update(self, context):
-        nv = context.scene.navidad 
+        nv = context.scene.navidad
         bpy.ops.mesh.circle_ops(nv=nv, mode='FAKE')
-        print('updated!', nv)
 
     bpy.types.Scene.navidad = bpy.props.IntProperty(
-        default=12, 
+        default=12, min=3,
         update=local_update)
 
+    # @classmethod
+    # def poll(self, context):
+    #     obj = context.active_object
+    #     return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
     @classmethod
     def poll(self, context):
         obj = context.active_object
-        return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
+        if ((obj is not None) and (obj.type == 'MESH') and (obj.mode == 'EDIT')):
+            return obj.data.total_vert_sel >= 3
 
     def draw(self, context):
         scn = context.scene
