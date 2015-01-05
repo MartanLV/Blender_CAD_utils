@@ -160,14 +160,14 @@ class CircleGenerator(bpy.types.Operator):
     bl_label = 'finalized circle'
     bl_options = {'REGISTER', 'UNDO'}
 
-    nv = bpy.props.IntProperty(default=0)
+    nv = bpy.props.IntProperty(default=3)
     mode = bpy.props.StringProperty(default='REAL')
 
     @classmethod
     def poll(self, context):
         obj = context.active_object
         if ((obj is not None) and (obj.type == 'MESH') and (obj.mode == 'EDIT')):
-            return obj.data.total_verts_sel >= 3
+            return obj.data.total_vert_sel >= 3
 
     def execute(self, context):
         scn = context.scene
@@ -178,16 +178,9 @@ class CircleGenerator(bpy.types.Operator):
             bm.verts.ensure_lookup_table()
         pts = get_selected_verts(bm)
 
-        # this discriminates between self invoked or invoked from the panel
-        # yes, it is stupid.
-        if self.nv == 0:
-            nv = scn.tc_numverts
-        else:
-            nv = self.nv
-
-        generate_3PT_mode_1(bm, pts, obj, nv, self.mode)
+        generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
         bmesh.update_edit_mesh(obj.data)
-        bm.free()
+        # bm.free()
         print('bm freed')
 
         return {'FINISHED'}
@@ -198,15 +191,15 @@ class CircleCenter(bpy.types.Operator):
     bl_label = 'circle center from selected'
     bl_options = {'REGISTER', 'UNDO'}
 
-    nv = bpy.props.IntProperty(default=12)
+    nv = bpy.props.IntProperty(min=3, default=12)
     mode = bpy.props.StringProperty(default='FAKE')
 
     def execute(self, context):
         obj = context.active_object
         bm = bmesh.from_edit_mesh(obj.data)
         pts = get_selected_verts(bm)
-        generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
-        # bm.free()
+        bm.free()
+        generate_3PT_mode_1(None, pts, obj, self.nv, self.mode)
         return {'FINISHED'}
 
 
@@ -216,6 +209,15 @@ class CirclePanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_context = "object"
+
+    def local_update(self, context):
+        nv = context.scene.navidad 
+        bpy.ops.mesh.circle_ops(nv=nv, mode='FAKE')
+        print('updated!', nv)
+
+    bpy.types.Scene.navidad = bpy.props.IntProperty(
+        default=12, 
+        update=local_update)
 
     @classmethod
     def poll(self, context):
@@ -227,8 +229,8 @@ class CirclePanel(bpy.types.Panel):
         layout = self.layout
 
         col = layout.column()
-        col.prop(scn, 'tc_numverts', text="number of verts")
+        col.prop(scn, 'navidad', text="number of verts")
 
         s1 = col.operator('mesh.circle_ops', text="finalize circle")
         s1.mode = 'REAL'
-        s1.nv = scn.tc_numverts
+        s1.nv = scn.navidad
