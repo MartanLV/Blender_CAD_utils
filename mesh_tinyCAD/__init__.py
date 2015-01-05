@@ -42,7 +42,6 @@ from mesh_tinyCAD.BIX import LineOnBisection
 from mesh_tinyCAD.PERP import CutOnPerpendicular
 from mesh_tinyCAD.CCEN import CircleCenter
 from mesh_tinyCAD.CCEN import CircleGenerator
-# from mesh_tinyCAD.CCEN import CirclePanel
 
 
 vtx_classes = (

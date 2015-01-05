@@ -108,7 +108,7 @@ def generate_mesh3d_stroke(bm, p1, v1, axis, mw, origin, nv):
 
     if hasattr(bm.verts, "ensure_lookup_table"):
         bm.verts.ensure_lookup_table()
-        # bm.edges.ensure_lookup_table()
+        bm.edges.ensure_lookup_table()
 
     for i in range(-nv, -1):
         bm.edges.new([bm.verts[i], bm.verts[i+1]])
@@ -120,7 +120,6 @@ def generate_3PT_mode_1(bm, pts, obj, nv, mode):
     origin = obj.location
     mw = obj.matrix_world
     V = Vector
-
     nv = max(3, nv)
 
     # construction
@@ -144,47 +143,40 @@ def generate_3PT_mode_1(bm, pts, obj, nv, mode):
         if mode == 'FAKE':
             layer = get_layer()
             generate_gp3d_stroke(layer, p1, v1, axis, mw, origin, nv)
-
+            bm.free()
         else:
             generate_mesh3d_stroke(bm, p1, v1, axis, mw, origin, nv)
+            bmesh.update_edit_mesh(obj.data)
     else:
         print('not on a circle')
 
+    # necessary.
+
 
 def get_three_verts_from_selection(obj):
-    me = obj.data
-    bm = bmesh.from_edit_mesh(me)
-
-    # if hasattr(bm.verts, "ensure_lookup_table"):
-    #     bm.verts.ensure_lookup_table()
-
-    selected_verts = [v.co[:] for v in bm.verts if v.select]
-    return selected_verts, bm
+    bm = bmesh.from_edit_mesh(obj.data)
+    if hasattr(bm.verts, "ensure_lookup_table"):
+        bm.verts.ensure_lookup_table()
+    return [v.co[:] for v in bm.verts if v.select], bm
 
 
 class CircleGenerator(bpy.types.Operator):
-
     bl_idname = 'mesh.circle_ops'
     bl_label = 'finalized circle'
-    bl_options = {'UNDO'}
+    bl_options = {'REGISTER','UNDO'}
 
     mode = bpy.props.StringProperty(default='FAKE')
 
     def execute(self, context):
-        obj = bpy.context.active_object
-        scn = bpy.context.scene
+        obj = context.active_object
+        scn = context.scene
         pts, bm = get_three_verts_from_selection(obj)
-
-        # add 3d points to mesh
         generate_3PT_mode_1(bm, pts, obj, scn.tc_numverts, self.mode)
-        me = obj.data
-        bmesh.update_edit_mesh(me)
         bm.free()
         return {'FINISHED'}
 
 
 class CircleCenter(bpy.types.Operator):
-
     bl_idname = 'mesh.circlecenter'
     bl_label = 'circle center from selected'
     bl_options = {'REGISTER', 'UNDO'}
@@ -198,10 +190,9 @@ class CircleCenter(bpy.types.Operator):
         return obj is not None and obj.type == 'MESH' and obj.mode == 'EDIT'
 
     def execute(self, context):
-        obj = bpy.context.active_object
+        obj = context.active_object
         pts, bm = get_three_verts_from_selection(obj)
         generate_3PT_mode_1(bm, pts, obj, self.nv, self.mode)
-        bm.free()
         return {'FINISHED'}
 
     def draw(self, context):
