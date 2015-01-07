@@ -233,7 +233,8 @@ class CirclePanel(bpy.types.Panel):
         col = layout.column()
         col.prop(scn, 'navidad', text="number of verts")
 
-        print(context.active_gpencil_layer)
+        # print(dir(context))
+        # print(context.active_gpencil_layer)
 
         s1 = col.operator('mesh.circle_ops', text="finalize circle")
         s1.mode = 'REAL'
